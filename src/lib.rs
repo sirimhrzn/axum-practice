@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::handlers::api;
+use crate::{handlers::api, middlewares::fallbacks::fallback_root_api};
 use anyhow::Context;
 use axum::{
     error_handling::HandleErrorLayer,
@@ -25,10 +25,12 @@ pub async fn server() -> anyhow::Result<()> {
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(mw_timeout_response))
                 .timeout(Duration::from_secs(2)),
-        )
-        .layer(middleware::from_fn(mw_error_response));
+        );
 
-    let router = Router::new().nest("/test", test_routes);
+    let router = Router::new()
+        .nest("/test", test_routes)
+        .fallback(fallback_root_api)
+        .layer(middleware::from_fn(mw_error_response));
 
     let port = 8001_u16;
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
